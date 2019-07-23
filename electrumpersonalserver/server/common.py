@@ -253,7 +253,10 @@ def handle_query(sock, line, rpc, txmonitor, disable_mempool_fee_histogram,
         txhex = query["params"][0]
         result = None
         error = None
-        txreport = rpc.call("testmempoolaccept", [[txhex]])[0]
+        try:
+           txreport = rpc.call("testmempoolaccept", [[txhex]])[0]
+        except JsonRpcError as e: # spoof for older versions of bitcoin/altcoins that don't support testmempoolaccept
+           txreport={'allowed': True,'txid': '<txid not known yet>'}
         if not txreport["allowed"]:
             error = txreport["reject-reason"]
         else:
@@ -278,7 +281,7 @@ def handle_query(sock, line, rpc, txmonitor, disable_mempool_fee_histogram,
                         "blocksonly")
                 else:
                     try:
-                        rpc.call("sendrawtransaction", [txhex])
+                        result = rpc.call("sendrawtransaction", [txhex])
                     except JsonRpcError as e:
                         logger.error("Error broadcasting: " + repr(e))
             elif broadcast_method == "tor":
